@@ -37,7 +37,6 @@
     import com.acmerobotics.roadrunner.geometry.Vector2d;
     import com.acmerobotics.roadrunner.trajectory.Trajectory;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-    import com.qualcomm.robotcore.eventloop.opmode.Disabled;
     import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
     import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -50,6 +49,7 @@
     import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
     import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
     import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+    import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
     import java.util.ArrayList;
     import java.util.List;
@@ -77,9 +77,9 @@
     * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
     * is explained below.
     */
-@Disabled
-@Autonomous(name="TestAuto", group = "test")
-public class  VuforiaAutonomous extends LinearOpMode {
+
+@Autonomous(name="Autonomous", group = "Autonomous")
+public class VuforiaAutonomous extends LinearOpMode {
 
         /*
          * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -104,23 +104,25 @@ public class  VuforiaAutonomous extends LinearOpMode {
         private static final float halfTile = 12 * mmPerInch;
         private static final float oneAndHalfTile = 36 * mmPerInch;
 
-
+        private SampleMecanumDrive drive;
         // Class Members
         private OpenGLMatrix lastLocation = null;
         private VuforiaLocalizer vuforia = null;
         private VuforiaTrackables targets = null;
         private WebcamName webcamName = null;
         private MecanumRobot robot;
+        private LED led;
         private List<VuforiaTrackable> allTrackables;
+
         private ElapsedTime runtime = new ElapsedTime();
         CheckConfig conf = null;
-        SampleMecanumDrive drive;
-        Pose2d robot_start;
 
         VuforiaTrackable targetFound = null;
 
+        private Pose2d startPose = new Pose2d(-34.33, 61.70, Math.toRadians(270));
 
         private boolean targetVisible = false;
+        private boolean  tr = true;
         private String targetName = "";
 
 
@@ -129,9 +131,10 @@ public class  VuforiaAutonomous extends LinearOpMode {
             // Connect to the camera we are to use.  This name must match what is set up in Robot Configuration
             webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
             drive = new SampleMecanumDrive(hardwareMap, this);
-
+            robot = new MecanumRobot();
             conf = new CheckConfig();
             conf.Init(this);
+            led = new LED(hardwareMap, this);
 
             /*
              * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -182,8 +185,10 @@ public class  VuforiaAutonomous extends LinearOpMode {
              */
 
             // Name and locate each trackable object
+            // allTrackables.get(0).setName("parking1");
             allTrackables.get(1).setName("parking3");
             allTrackables.get(0).setName("parking2");
+
             // allTrackables.get(3).setName("parking4");
             //identifyTarget(0, "Red Audience Wall",   -halfField,  -oneAndHalfTile, mmTargetHeight, 90, 0,  90);
             //        identifyTarget(1, "Red Rear Wall",        halfField,  -oneAndHalfTile, mmTargetHeight, 90, 0, -90);
@@ -231,8 +236,6 @@ public class  VuforiaAutonomous extends LinearOpMode {
              * To restore the normal opmode structure, just un-comment the following line:
              */
 
-            // waitForStart();
-
             /* Note: To use the remote camera preview:
              * AFTER you hit Init on the Driver Station, use the "options menu" to select "Camera Stream"
              * Tap the preview window to receive a fresh image.
@@ -242,140 +245,189 @@ public class  VuforiaAutonomous extends LinearOpMode {
 
 
             targets.activate();
+            //led.powerBlueOn();
+            drive.setPoseEstimate(startPose);
+            robot.claw.setPosition(.80);
+
+
             while (!isStopRequested()) {
-                robot_start = new Pose2d(-37.33, -67.70, Math.toRadians(270.00));
-                drive.setPoseEstimate(robot_start);
-                conf.Init(this);
-
-                telemetry.addData("RUNTIME", runtime.seconds());
-                telemetry.update();
-                int count = 0;
-                // check all the trackable targets to see which one (if any) is visible.
-                targetVisible = false;
-                targetFound = null;
-                for (VuforiaTrackable trackable : allTrackables) {
-                    if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
-                        telemetry.addData("Visible Target", trackable.getName());
-                        targetVisible = true;
-                        targetName = trackable.getName();
-                        targetFound = trackable;
-
-                        // getUpdatedRobotLocation() will return null if no new information is available since
-                        // the last time that call was made, or if the trackable is not currently visible.
-                        OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
-                        if (robotLocationTransform != null) {
-                            lastLocation = robotLocationTransform;
-                        }
-                        break;
-                    }
-                    count++;
-                }
-                // Provide feedback as of which target its has found
-
-                if (targetVisible) {
-                    if (targetFound.equals(allTrackables.get(0))) {// parking 2
-                        telemetry.addData("Robot is parking to %s", targetName);
-                        telemetry.update();
-                        waitForStart();
-                        park();
-                        break;
-                    } else if (targetFound.equals(allTrackables.get(1))) {//parking 3
-                        telemetry.addData("Robot is parking to %s", targetName);
-                        telemetry.update();
-                        waitForStart();
-                        park();
-                        break;
-                    }
-                } else if (runtime.seconds() > 10) {//parking 1
-                    telemetry.addData("Parking 1 ", "");
+                while(!isStarted()) {
+                    targetVisible = false;
+                    targetFound = null;
+                    telemetry.addData("RUNTIME", runtime.seconds());
                     telemetry.update();
-                    waitForStart();
+
+                    // check all the trackable targets to see which one (if any) is visible.
+
+                    for (VuforiaTrackable trackable : allTrackables) {
+                        if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
+                            telemetry.addData("Visible Target", trackable.getName());
+                            targetVisible = true;
+                            led.found();
+                            targetName = trackable.getName();
+                            targetFound = trackable;
+                            // getUpdatedRobotLocation() will return null if no new information is available since
+                            // the last time that call was made, or if the trackable is not currently visible.
+                            OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+                            if (robotLocationTransform != null) {
+                                lastLocation = robotLocationTransform;
+                            }
+                            break;
+                        }
+
+                    }
+                    if (targetFound == null)// looking for images LED signal
+                        led.looking();
+                    //else{led.powerOff();}
+                    // Provide feedback as of which target its has found
+                   // if (targetVisible) led.powerGreenOn();
+                }
+
+
+                boolean ran = true;
+                targets.deactivate();
+                if (targetVisible) {
+                    ran = false;
+                    telemetry.addData("Robot is parking to %s", targetName);
+                    telemetry.update();
                     park();
-                    break;
+                }
+                else if(ran){//parking 1
+                        telemetry.addLine("Robot is parking in Parking 1 ");
+                        telemetry.update();
+                        park();
+                    }
+
+                break;
                 }
             }
-        }
+
+
 
         void park() {
-            robot.armUp(39);
+            if(!conf.isLeft())// if robot in the right
+                rightLocation();
+            else
+                leftLocation();
         }
 
-        void RandL() {
-            if (targetFound != null) {
-                // if target is parking 2
-                if (targetFound.equals(allTrackables.get(0))) {
+        // right fuild side movement
+        void rightLocation() {
+                    runToRightParking2();
+        }
 
-                    robot.armUp(5);
-                    Trajectory strafe = drive.trajectoryBuilder(robot_start)
-                            .strafeTo(new Vector2d(-64.89, -67.70))
-                            .build();
-                    drive.followTrajectory(strafe);
+        void leftLocation(){
+            Pose2d left_start = new Pose2d(34.33, 61.70, Math.toRadians(270));
+            drive.setPoseEstimate(left_start);
+            runToLeftParking2(left_start);
+        }
 
-                    Trajectory to_junc = drive.trajectoryBuilder(strafe.end())
-                            .lineTo(new Vector2d(-64.89, -24.22))
-                            .splineTo(new Vector2d(-31.56, -9.56), Math.toRadians(413.13))
-                            .build();
-                    drive.followTrajectory(to_junc);
-                    robot.armUp(38);
+        boolean parking2(){
+                return targetFound.equals(allTrackables.get(0));
 
-                    Trajectory forward = drive.trajectoryBuilder(to_junc.end())
-                            .forward(2)
-                            .build();
-                    drive.followTrajectory(forward);
-                    robot.openClaw();
-                    Trajectory back = drive.trajectoryBuilder(forward.end())
-                            .back(6)
-                            .build();
-                    drive.followTrajectory(back);
+        }
+        boolean parking3(){
+            return targetFound.equals(allTrackables.get(1));
+        }
 
 
+        void runToRightParking2() {
+            robot.armUp(5);
+
+            TrajectorySequence go = drive.trajectorySequenceBuilder(new Pose2d(-34.33, 61.70, Math.toRadians(270)))
+                    .lineToConstantHeading(new Vector2d(-26,59))
+                    .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
+                    .build();
+
+            TrajectorySequence go2 = drive.trajectorySequenceBuilder(go.end())
+                    .lineToConstantHeading(new Vector2d(-26,52))
+                    .addDisplacementMarker(()->{robot.openClaw();})
+                    .back(4).
+                    build();
+            TrajectorySequence go3 = drive.trajectorySequenceBuilder(go2.end())
+                    .strafeLeft(15)
+                    .build();
+            TrajectorySequence go4 = drive.trajectorySequenceBuilder(go3.end())
+                    .lineToConstantHeading(new Vector2d(-11,10)).build();
+
+            drive.followTrajectorySequence(go);
+            drive.followTrajectorySequence(go2);
+            drive.followTrajectorySequence(go3);
+            drive.followTrajectorySequence(go4);
+
+            TrajectorySequence park =  null;
+            if(targetFound !=null) {
+                if (parking2()) {
+                    park = drive.trajectorySequenceBuilder(go4.end())
+                            .strafeRight(24).build();//parking2
+                } else if (parking3()) {
+                    park = drive.trajectorySequenceBuilder(go4.end())
+                            .strafeRight(50).build();//parking 3
                 }
-                // if target is parking 3
-                else if (targetFound.equals(allTrackables.get(1))) {
-                    robot.armUp(5);
-                    Trajectory strafe = drive.trajectoryBuilder(robot_start)
-                            .strafeTo(new Vector2d(-64.89, -67.70))
-                            .build();
-                    drive.followTrajectory(strafe);
-
-                    Trajectory to_junc = drive.trajectoryBuilder(strafe.end())
-                            .splineTo(new Vector2d(-58.67, -34.00), Math.toRadians(401.63))
-                            .build();
-                    drive.followTrajectory(to_junc);
-                    robot.armUp(13);
-
-                    Trajectory forward = drive.trajectoryBuilder(to_junc.end())
-                            .forward(3)
-                            .build();
-                    drive.followTrajectory(forward);
-                    robot.openClaw();
-
-                    Trajectory back = drive.trajectoryBuilder(forward.end())
-                            .back(6)
-                            .build();
-                    drive.followTrajectory(back);
-
-                }
-                // if target is parking 1
-            } else {
-                robot.armUp(5);
-                Trajectory untitled0 = drive.trajectoryBuilder(new Pose2d(-37.33, -67.70, Math.toRadians(90.00)))
-                        .splineTo(new Vector2d(-14.07, -48.44), Math.toRadians(90.00))
-                        .splineTo(new Vector2d(-7.56, -32.74), Math.toRadians(411.63))
-                        .build();
-                drive.followTrajectory(untitled0);
-
-                robot.armUp(36);
-
-                Trajectory forward = drive.trajectoryBuilder(untitled0.end())
-                        .forward(2)
-                        .build();
-                drive.followTrajectory(forward);
-                robot.openClaw();
-                Trajectory back = drive.trajectoryBuilder(forward.end())
-                        .back(6)
-                        .build();
-                drive.followTrajectory(back);
+                drive.followTrajectorySequence(park);
             }
+
+
         }
-    }
+
+        void runToLeftParking2(Pose2d leftStartingPos){
+
+            robot.armUp(5);
+            TrajectorySequence go = drive.trajectorySequenceBuilder(leftStartingPos)
+                    .lineToConstantHeading(new Vector2d(26,59))
+                    .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
+                    .build();
+
+            TrajectorySequence go2 = drive.trajectorySequenceBuilder(go.end())
+                    .lineToConstantHeading(new Vector2d(26,52))
+                    .addDisplacementMarker(()->{robot.openClaw();})
+                    .back(4).
+                    build();
+            TrajectorySequence go3 = drive.trajectorySequenceBuilder(go2.end())
+                    .strafeRight(15)
+                    .build();
+            TrajectorySequence go4 = drive.trajectorySequenceBuilder(go3.end())
+                    .lineToConstantHeading(new Vector2d(11,10)).build();// parking 3
+
+
+            drive.followTrajectorySequence(go);
+            drive.followTrajectorySequence(go2);
+            drive.followTrajectorySequence(go3);
+            drive.followTrajectorySequence(go4);
+
+            TrajectorySequence park = null ;
+            if(targetFound != null) {
+                if (parking2()) {
+                    park = drive.trajectorySequenceBuilder(go4.end())
+                            .strafeLeft(24).build();//parking 2
+                }
+                }else{
+                park = drive.trajectorySequenceBuilder(go4.end())
+                        .strafeLeft(50).build();//parking 1
+            }
+                drive.followTrajectorySequence(park);//
+
+            }
+
+
+
+
+            //robot.armUp(36);
+            //drive.followTrajectory(forward);
+            //sleep(1000);
+            //robot.openClaw();
+           // drive.followTrajectory(back);
+            //drive.turn(Math.toRadians(90));
+            //drive.update();
+            //.followTrajectory(lineToStack);
+            //drive.followTrajectory(pick_up);
+
+        }
+
+
+
+
+
+
+
+

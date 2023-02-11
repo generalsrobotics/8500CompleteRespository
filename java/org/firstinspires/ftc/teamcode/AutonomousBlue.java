@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
-
 @Autonomous(name="AutonomousTesting")
 public class AutonomousBlue extends LinearOpMode {
 
@@ -19,26 +18,26 @@ public class AutonomousBlue extends LinearOpMode {
         MecanumRobot robot = new MecanumRobot();
         robot.init(hardwareMap, this);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap,this);
-        drive.setPoseEstimate(new Pose2d(-34.33, 61.70, Math.toRadians(270)));
+        drive.setPoseEstimate(new Pose2d(34.33, 61.70, Math.toRadians(270)));
         robot.closeClaw();
         boolean once = true;
         waitForStart();
         robot.armUp(5);
-       TrajectorySequence go = drive.trajectorySequenceBuilder(new Pose2d(-34.33, 61.70, Math.toRadians(270)))
-               .lineToConstantHeading(new Vector2d(-26,59))
+       TrajectorySequence go = drive.trajectorySequenceBuilder(new Pose2d(34.33, 61.70, Math.toRadians(270)))
+               .lineToConstantHeading(new Vector2d(26,59))
                .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
                .build();
 
        TrajectorySequence go2 = drive.trajectorySequenceBuilder(go.end())
-               .lineToConstantHeading(new Vector2d(-26,52))
+               .lineToConstantHeading(new Vector2d(26,52))
                .addDisplacementMarker(()->{robot.openClaw();})
                .back(4).
                build();
         TrajectorySequence go3 = drive.trajectorySequenceBuilder(go2.end())
-                .strafeLeft(15)
+                .strafeRight(15)
                 .build();
         TrajectorySequence go4 = drive.trajectorySequenceBuilder(go3.end())
-                .lineToConstantHeading(new Vector2d(-11,10)).build();
+                .lineToConstantHeading(new Vector2d(11,10)).lineToLinearHeading(new Pose2d(64,12, Math.toRadians(0))).addDisplacementMarker(()->{robot.armDown(6.5);}).build();
 
 
        drive.followTrajectorySequence(go);
