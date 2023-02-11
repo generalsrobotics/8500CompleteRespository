@@ -1,0 +1,2 @@
+Robot Position(L or R): R
+Team Color(R or B): R
