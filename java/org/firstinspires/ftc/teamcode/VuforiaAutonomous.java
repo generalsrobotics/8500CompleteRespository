@@ -332,16 +332,16 @@ public class VuforiaAutonomous extends LinearOpMode {
 
 
         void runToRightParking2() {
-            robot.armUp(5);
+            robot.armUp(20);
 
             TrajectorySequence go = drive.trajectorySequenceBuilder(new Pose2d(-34.33, 61.70, Math.toRadians(270)))
                     .lineToConstantHeading(new Vector2d(-26,59))
-                    .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
+                   // .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
                     .build();
 
             TrajectorySequence go2 = drive.trajectorySequenceBuilder(go.end())
                     .lineToConstantHeading(new Vector2d(-26,52))
-                    .addDisplacementMarker(()->{robot.openClaw();})
+                    .addDisplacementMarker(()->{robot.armDown(10);robot.openClaw();})
                     .back(4).
                     build();
             TrajectorySequence go3 = drive.trajectorySequenceBuilder(go2.end())
@@ -372,15 +372,15 @@ public class VuforiaAutonomous extends LinearOpMode {
 
         void runToLeftParking2(Pose2d leftStartingPos){
 
-            robot.armUp(5);
+            robot.armUp(20);
             TrajectorySequence go = drive.trajectorySequenceBuilder(leftStartingPos)
                     .lineToConstantHeading(new Vector2d(26,59))
-                    .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
+                   // .addTemporalMarker(1, ()-> {robot.armUp(13.9);})
                     .build();
 
             TrajectorySequence go2 = drive.trajectorySequenceBuilder(go.end())
                     .lineToConstantHeading(new Vector2d(26,52))
-                    .addDisplacementMarker(()->{robot.openClaw();})
+                    .addDisplacementMarker(()->{robot.armDown(10 );robot.openClaw();})
                     .back(4).
                     build();
             TrajectorySequence go3 = drive.trajectorySequenceBuilder(go2.end())

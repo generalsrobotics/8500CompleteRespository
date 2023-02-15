@@ -37,13 +37,23 @@ public class AutonomousBlue extends LinearOpMode {
                 .strafeRight(15)
                 .build();
         TrajectorySequence go4 = drive.trajectorySequenceBuilder(go3.end())
-                .lineToConstantHeading(new Vector2d(11,10)).lineToLinearHeading(new Pose2d(64,12, Math.toRadians(0))).addDisplacementMarker(()->{robot.armDown(6.5);}).build();
+                .lineToConstantHeading(new Vector2d(11,10)).lineToLinearHeading(new Pose2d(64,12, Math.toRadians(0))).build();
+
+        TrajectorySequence go5= drive.trajectorySequenceBuilder(go4.end())
+                .lineToLinearHeading(new Pose2d(49.5,12, Math.toRadians(87))).forward(5.5).build();
 
 
-       drive.followTrajectorySequence(go);
+        drive.followTrajectorySequence(go);
        drive.followTrajectorySequence(go2);
        drive.followTrajectorySequence(go3);
        drive.followTrajectorySequence(go4);
+       robot.armDown(12);
+       robot.closeClaw();
+       robot.armUp(12);
+       drive.followTrajectorySequence(go5);
+
+
+       //drive.followTrajectorySequence();
 
 
 

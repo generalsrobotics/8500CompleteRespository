@@ -355,6 +355,7 @@
     }
     void armEncoder(double speed, double armInches, double timeoutS ){
       int armTarget;
+      arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
       armTarget = arm.getCurrentPosition() + (int)(armInches * COUNTS_PER_INCH_FOR_ARM);
 
@@ -392,6 +393,7 @@
       }
     }
  void armdownEncoder(double speed, double armInches, double timeoutS ){
+   arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
    int armTarget;
 
