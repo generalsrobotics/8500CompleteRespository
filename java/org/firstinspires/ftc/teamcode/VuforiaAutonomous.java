@@ -132,9 +132,11 @@ public class VuforiaAutonomous extends LinearOpMode {
             webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
             drive = new SampleMecanumDrive(hardwareMap, this);
             robot = new MecanumRobot();
-            conf = new CheckConfig();
-            conf.Init(this);
+            conf = new CheckConfig(hardwareMap, this);
             led = new LED(hardwareMap, this);
+
+
+
 
             /*
              * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
